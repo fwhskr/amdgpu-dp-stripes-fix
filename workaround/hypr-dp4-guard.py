@@ -70,6 +70,16 @@ def dpms_cycle(name, idir):
     if not any(m.get("name") == name for m in monitors(idir)):
         log(f"{name} gone before cycle; skipping")
         return
+    # Capture pre-cycle state (DRM/DPCD/logs) for the upstream bug report.
+    # This is the only moment the possibly-corrupt state still exists.
+    capture = os.path.expanduser("~/.local/bin/stripes-capture.sh")
+    if os.path.exists(capture):
+        try:
+            log(f"capturing pre-cycle evidence for {name}")
+            subprocess.run([capture, "auto-precycle"], timeout=120,
+                           capture_output=True, text=True)
+        except Exception as e:
+            log(f"evidence capture failed (continuing): {e}")
     time.sleep(1)  # let the panel finish waking before we blink it
     log(f"cycling DPMS on {name} (stripe guard)")
     hyprctl(["dispatch", f'hl.dsp.dpms({{ action = "disable", monitor = "{name}" }})'], idir)
